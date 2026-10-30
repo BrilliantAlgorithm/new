@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Elemental Duelists — Articulated Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(circle at center, #121526 0%, #05060b 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Top Utility Bar */
+        #top-bar {
+            width: 100%;
+            max-width: 1024px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 14px;
+            background: rgba(12, 15, 28, 0.95);
+            border-bottom: 1px solid #262c44;
+            font-size: 13px;
+            z-index: 30;
+        }
+
+        .top-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: #fbbf24;
+            letter-spacing: 0.5px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .util-btn {
+            background: #1e243b;
+            color: #e2e8f0;
+            border: 1px solid #3b466e;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .util-btn:hover {
+            background: #2d3656;
+            border-color: #60a5fa;
+        }
+
+        .util-btn.active {
+            background: #0284c7;
+            border-color: #38bdf8;
+            color: #fff;
+        }
+
+        #game-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1024px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9);
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            max-height: 560px;
+            background-color: #070913;
+            overflow: hidden;
+            border-left: 2px solid #222942;
+            border-right: 2px solid #222942;
+            touch-action: none;
+        }
+
+        canvas#gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Screens & Overlays */
+        .screen {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, rgba(10, 13, 24, 0.96), rgba(4, 6, 12, 0.98));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1.game-title {
+            margin: 0 0 6px 0;
+            font-size: clamp(26px, 4vw, 42px);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, #38bdf8, #fbbf24, #f87171);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+
+        /* Mode & Difficulty Bar */
+        .config-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .pill-group {
+            display: flex;
+            background: #0f1424;
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid #283152;
+            gap: 4px;
+        }
+
+        .pill-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 8px 16px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .pill-btn.active {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.5);
+        }
+
+        /* Character Selection Grid */
+        .roster-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 940px;
+            gap: 10px;
+        }
+
+        .selector-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 4px;
+        }
+
+        .selector-slot {
+            padding: 6px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            border: 2px solid #2e3856;
+            background: #111629;
+            color: #cbd5e1;
+        }
+
+        .selector-slot.active-p1 {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            color: #fff;
+        }
+
+        .selector-slot.active-p2 {
+            border-color: #f87171;
+            background: rgba(248, 113, 113, 0.15);
+            color: #fff;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+
+        .char-card {
+            background: linear-gradient(180deg, #161c33 0%, #0d1120 100%);
+            border: 2px solid #293252;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .char-card:hover {
+            transform: translateY(-3px);
+            border-color: #64748b;
+        }
+
+        .char-card.p1-selected {
+            border-color: #38bdf8;
+            box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+        }
+
+        .char-card.p2-selected {
+            border-color: #f87171;
+            box-shadow: 0 0 18px rgba(248, 113, 113, 0.35);
+        }
+
+        .char-card.both-selected {
+            border-image: linear-gradient(90deg, #38bdf8, #f87171) 1;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+
+        .badge-holder {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .pick-tag {
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .pick-p1 { background: #0284c7; color: #fff; }
+        .pick-p2 { background: #dc2626; color: #fff; }
+
+        .portrait-canvas {
+            width: 110px;
+            height: 125px;
+            background: radial-gradient(circle at 50% 60%, rgba(255,255,255,0.08), transparent 70%);
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .char-name {
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .char-role {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            padding: 2px 8px;
+            border-radius: 99px;
+        }
+
+        .char-stats {
+            width: 100%;
+            font-size: 11px;
+            color: #cbd5e1;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 6px 8px;
+            border-radius: 6px;
+            line-height: 1.45;
+        }
+
+        .start-btn {
+            margin-top: 12px;
+            background: linear-gradient(90deg, #f59e0b, #ea580c);
+            color: #fff;
+            border: none;
+            padding: 12px 44px;
+            font-size: 18px;
+            font-weight: 900;
+            border-radius: 999px;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 6px 22px rgba(234, 88, 12, 0.5);
+            transition: transform 0.12s, box-shadow 0.12s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 28px rgba(234, 88, 12, 0.75);
+        }
+
+        /* iPad / Tablet 1P Touch Controls Overlay */
+        #touch-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 15;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 16px 22px;
+        }
+
+        .touch-cluster {
+            pointer-events: auto;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .dpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 58px);
+            grid-template-rows: repeat(2, 58px);
+            gap: 6px;
+        }
+
+        .action-pad {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .skill-row, .melee-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .t-btn {
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(4px);
+            color: #fff;
+            font-weight: 800;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.05s, background 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .t-btn span.main-lbl {
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .t-btn small {
+            font-size: 9px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .t-btn.pressed {
+            transform: scale(0.92);
+            background: rgba(56, 189, 248, 0.55);
+            border-color: #fff;
+        }
+
+        .t-btn.melee-punch {
+            border-color: #fbbf24;
+            background: rgba(120, 53, 15, 0.65);
+        }
+
+        .t-btn.melee-kick {
+            border-color: #38bdf8;
+            background: rgba(12, 74, 110, 0.65);
+        }
+
+        .t-btn.skill-btn {
+            width: 62px;
+            height: 52px;
+            border-color: #a855f7;
+            background: rgba(59, 7, 100, 0.7);
+        }
+
+        /* Persistent Bottom Controls Legend */
+        #controls-legend {
+            width: 100%;
+            background: #0b0e1a;
+            padding: 12px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            border: 2px solid #222942;
+            border-top: 1px solid #2e3856;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .legend-card {
+            background: #12172a;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #252f4f;
+        }
+
+        .legend-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e2e8f0;
+            border-bottom: 1px solid #252f4f;
+            padding-bottom: 5px;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px 10px;
+            font-size: 11.5px;
+            color: #94a3b8;
+        }
+
+        .key-cap {
+            display: inline-block;
+            background: #242f52;
+            color: #f8fafc;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            font-size: 11px;
+            border-bottom: 2px solid #0f1426;
+            margin-right: 4px;
+        }
+
+        .boost-tag {
+            color: #fbbf24;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            #controls-legend {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Utility & iPad Mode Bar -->
+<div id="top-bar">
+    <div class="top-badge">
+        <span>⚡ ELEMENTAL DUELISTS</span>
+        <span style="color:#94a3b8; font-weight:400;">| +75 HP Boost • +35% Punch Reach • Bunker Shield Walls</span>
+    </div>
+    <div class="top-actions">
+        <button id="toggle-touch-btn" class="util-btn" onclick="toggleTouchUI()">📱 iPad Touch UI: AUTO</button>
+        <button class="util-btn" onclick="openMenu()">⚙️ Character & Mode Select</button>
+    </div>
+</div>
+
+<div id="game-wrapper">
+    <div id="game-container">
+        <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+        <!-- 1-Player iPad / Tablet Touch Controls Overlay -->
+        <div id="touch-overlay" class="hidden">
+            <!-- Left Thumb Movement Cluster -->
+            <div class="touch-cluster">
+                <div class="dpad-grid">
+                    <div></div>
+                    <div class="t-btn" data-tkey="w"><span class="main-lbl">▲</span><small>JUMP</small></div>
+                    <div></div>
+                    <div class="t-btn" data-tkey="a"><span class="main-lbl">◄</span><small>LEFT</small></div>
+                    <div class="t-btn" data-tkey="s"><span class="main-lbl">▼</span><small>GUARD</small></div>
+                    <div class="t-btn" data-tkey="d"><span class="main-lbl">►</span><small>RIGHT</small></div>
+                </div>
+            </div>
+
+            <!-- Right Thumb Attack & Elemental Cluster -->
+            <div class="touch-cluster action-pad">
+                <div class="skill-row">
+                    <div class="t-btn skill-btn" data-tkey="1"><span class="main-lbl" id="touch-sk1">SK 1</span><small>KEY 1</small></div>
+                    <div class="t-btn skill-btn" data-tkey="2"><span class="main-lbl" id="touch-sk2">SK 2</span><small>KEY 2</small></div>
+                    <div class="t-btn skill-btn" data-tkey="3"><span class="main-lbl" id="touch-sk3">ULT 3</span><small>KEY 3</small></div>
+                </div>
+                <div class="melee-row">
+                    <div class="t-btn melee-punch" data-tkey="z"><span class="main-lbl">PUNCH</span><small>+35% RNG</small></div>
+                    <div class="t-btn melee-kick" data-tkey="x"><span class="main-lbl">KICK</span><small>STRIKE</small></div>
+                    <div class="t-btn melee-punch" data-tkey="c"><span class="main-lbl">HVY P</span><small>+35% RNG</small></div>
+                    <div class="t-btn melee-kick" data-tkey="v"><span class="main-lbl">HVY K</span><small>LAUNCH</small></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Setup & Character Select Screen -->
+        <div id="setup-screen" class="screen">
+            <h1 class="game-title">Elemental Duelists</h1>
+            <div class="subtitle">Custom Articulated Fighters • Destructible Bunker Barriers • +75 HP & +35% Punch Reach</div>
+
+            <div class="config-row">
+                <div class="pill-group">
+                    <button id="mode-pve" class="pill-btn active" onclick="setGameMode('pve')">🤖 1P vs Bot (5 Rounds)</button>
+                    <button id="mode-pvp" class="pill-btn" onclick="setGameMode('pvp')">⚔️ 2P Local Versus (Computer)</button>
+                </div>
+
+                <div id="difficulty-group" class="pill-group">
+                    <button id="diff-easy" class="pill-btn" onclick="setDifficulty('easy')">Easy Bot</button>
+                    <button id="diff-medium" class="pill-btn active" onclick="setDifficulty('medium')">Medium Bot</button>
+                    <button id="diff-hard" class="pill-btn" onclick="setDifficulty('hard')">Hard Bot</button>
+                </div>
+            </div>
+
+            <div class="roster-wrapper">
+                <div class="selector-tabs">
+                    <div id="slot-p1" class="selector-slot active-p1" onclick="setActiveSlot(1)">
+                        Picking For: <span id="slot-p1-name">PLAYER 1 (LEO)</span>
+                    </div>
+                    <div id="slot-p2" class="selector-slot" onclick="setActiveSlot(2)">
+                        Picking For: <span id="slot-p2-name">BOT OPPONENT (MARCUS)</span>
+                    </div>
+                </div>
+
+                <div class="cards-grid">
+                    <!-- Character 1: LEO -->
+                    <div class="char-card p1-selected" id="card-leo" onclick="chooseCharacter('leo')">
+                        <div class="badge-holder" id="badges-leo"></div>
+                        <canvas class="portrait-canvas" id="portrait-leo" width="140" height="160"></canvas>
+                        <div class="char-name" style="color:#38bdf8;">LEO</div>
+                        <div class="char-role" style="background:rgba(56,189,248,0.18); color:#38bdf8;">Speedster • Wind & Lightning</div>
+                        <div class="char-stats">
+                            <div><strong>Outfit:</strong> Orange Hoodie, Slate Jacket, Sneakers</div>
+                            <div><strong>Stats:</strong> 235 HP (+75) | Speed: Fastest (6.2)</div>
+                            <div><strong>Melee:</strong> Quick Jab & Sonic Straight (+35% Reach)</div>
+                            <div><strong>Skills:</strong> 1: Gale Shuriken • 2: Volt Dash • 3: Tempest Vortex</div>
+                        </div>
+                    </div>
+
+                    <!-- Character 2: MARCUS -->
+                    <div class="char-card p2-selected" id="card-marcus" onclick="chooseCharacter('marcus')">
+                        <div class="badge-holder" id="badges-marcus"></div>
+                        <canvas class="portrait-canvas" id="portrait-marcus" width="140" height="160"></canvas>
+                        <div class="char-name" style="color:#34d399;">MARCUS</div>
+                        <div class="char-role" style="background:rgba(52,211,153,0.18); color:#34d399;">Tank • Earth & Water</div>
+                        <div class="char-stats">
+                            <div><strong>Outfit:</strong> Rolled Denim Shirt, Utility Belt, Boots</div>
+                            <div><strong>Stats:</strong> 310 HP (+75) | Speed: Heavy Armor (4.2)</div>
+                            <div><strong>Melee:</strong> Heavy Hook & Titan Haymaker (+35% Reach)</div>
+                            <div><strong>Skills:</strong> 1: Hydro Cannon • 2: Seismic Slam • 3: Tidal Fortress</div>
+                        </div>
+                    </div>
+
+                    <!-- Character 3: COLE -->
+                    <div class="char-card" id="card-cole" onclick="chooseCharacter('cole')">
+                        <div class="badge-holder" id="badges-cole"></div>
+                        <canvas class="portrait-canvas" id="portrait-cole" width="140" height="160"></canvas>
+                        <div class="char-name" style="color:#fb923c;">COLE</div>
+                        <div class="char-role" style="background:rgba(251,146,60,0.18); color:#fb923c;">Brawler • Fire & Magma</div>
+                        <div class="char-stats">
+                            <div><strong>Outfit:</strong> Grey-Blue Open Collar Shirt, Watch, Boots</div>
+                            <div><strong>Stats:</strong> 265 HP (+75) | Speed: Balanced (5.2)</div>
+                            <div><strong>Melee:</strong> Straight Punch & Blazing Cross (+35% Reach)</div>
+                            <div><strong>Skills:</strong> 1: Fireball Volley • 2: Inferno Upper • 3: Hellfire Nova</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="start-btn" onclick="startMatchFromMenu()">ENTER THE ARENA</button>
+        </div>
+
+        <!-- Victory / Game Over Screen -->
+        <div id="game-over-screen" class="screen hidden" style="background: rgba(6, 9, 18, 0.9);">
+            <h1 class="game-title" id="game-over-title">VICTORY!</h1>
+            <div class="subtitle" id="game-over-desc" style="font-size:17px; color:#e2e8f0; margin-bottom:24px;">Player 1 wins the match!</div>
+            <div style="display:flex; gap:14px;">
+                <button class="start-btn" onclick="rematch()">REMATCH</button>
+                <button class="util-btn" style="padding:12px 24px; font-size:15px;" onclick="openMenu()">CHANGE FIGHTERS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persistent Bottom Controls Legend -->
+    <div id="controls-legend">
+        <div class="legend-card">
+            <h4>
+                <span style="color:#38bdf8;">PLAYER 1 CONTROLS (Keyboard & iPad Touch)</span>
+                <span id="p1-legend-char" class="boost-tag">LEO (Wind/Lightning)</span>
+            </h4>
+            <div class="legend-grid">
+                <div><span class="key-cap">A</span><span class="key-cap">D</span> Move Left / Right</div>
+                <div><span class="key-cap">W</span> Jump <span class="key-cap">S</span> Guard/Crouch</div>
+                <div><span class="key-cap">Z</span> <span id="p1-atk1-lbl">Quick Jab</span> <span class="boost-tag">(+35% Reach)</span></div>
+                <div><span class="key-cap">X</span> <span id="p1-atk2-lbl">Snap Kick</span></div>
+                <div><span class="key-cap">C</span> <span id="p1-atk3-lbl">Sonic Straight</span> <span class="boost-tag">(+35% Reach)</span></div>
+                <div><span class="key-cap">V</span> <span id="p1-atk4-lbl">Cyclone Kick</span></div>
+                <div><span class="key-cap">1</span> <span id="p1-sk1-lbl">Gale Shuriken</span> <span class="key-cap">2</span> <span id="p1-sk2-lbl">Volt Dash</span></div>
+                <div><span class="key-cap">3</span> <span id="p1-sk3-lbl">Tempest Vortex (Ultimate)</span></div>
+            </div>
+        </div>
+
+        <div class="legend-card">
+            <h4>
+                <span style="color:#f87171;">PLAYER 2 CONTROLS (2P Local Keyboard)</span>
+                <span id="p2-legend-char" class="boost-tag">MARCUS (Earth/Water)</span>
+            </h4>
+            <div class="legend-grid">
+                <div><span class="key-cap">←</span><span class="key-cap">→</span> Move Left / Right</div>
+                <div><span class="key-cap">↑</span> Jump <span class="key-cap">↓</span> Guard/Crouch</div>
+                <div><span class="key-cap">J</span> <span id="p2-atk1-lbl">Heavy Hook</span> <span class="boost-tag">(+35% Reach)</span></div>
+                <div><span class="key-cap">K</span> <span id="p2-atk2-lbl">Stomp Kick</span></div>
+                <div><span class="key-cap">L</span> <span id="p2-atk3-lbl">Titan Haymaker</span> <span class="boost-tag">(+35% Reach)</span></div>
+                <div><span class="key-cap">U</span> / <span class="key-cap">;</span> <span id="p2-atk4-lbl">Tectonic Boot</span></div>
+                <div><span class="key-cap">I</span>/<span class="key-cap">7</span> <span id="p2-sk1-lbl">Hydro Cannon</span> <span class="key-cap">O</span>/<span class="key-cap">8</span> <span id="p2-sk2-lbl">Seismic Slam</span></div>
+                <div><span class="key-cap">P</span>/<span class="key-cap">9</span> <span id="p2-sk3-lbl">Tidal Fortress (Ultimate)</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /** =========================================================================
+     *  CHARACTER DEFINITIONS (Matching User Reference Characters + 75 HP Boost)
+     *  ========================================================================= */
+    const CHARACTERS = {
+        leo: {
+            id: 'leo',
+            name: 'LEO',
+            title: 'Speedster',
+            element: 'Wind & Lightning',
+            themeColor: '#38bdf8',
+            secondaryColor: '#f97316',
+            maxHp: 235, // Base 160 + 75 HP boost
+            speed: 6.2,
+            jumpForce: -14.8,
+            moves: {
+                punch: { name: 'Quick Jab', dmg: 18, range: 92, cd: 16, dur: 11, kb: 4.5, isPunch: true }, // +35% longer reach
+                kick: { name: 'Snap Kick', dmg: 22, range: 64, cd: 20, dur: 13, kb: 6, isPunch: false },
+                superPunch: { name: 'Sonic Straight', dmg: 31, range: 118, cd: 32, dur: 16, kb: 8.5, isPunch: true }, // +35% longer reach
+                superKick: { name: 'Cyclone Kick', dmg: 35, range: 76, cd: 36, dur: 18, kb: 10, isPunch: false },
+                sk1: { name: 'Gale Shuriken', cd: 75 },
+                sk2: { name: 'Volt Dash', cd: 110 },
+                sk3: { name: 'Tempest Vortex', cd: 185 }
+            }
+        },
+        marcus: {
+            id: 'marcus',
+            name: 'MARCUS',
+            title: 'Tank',
+            element: 'Earth & Water',
+            themeColor: '#34d399',
+            secondaryColor: '#3b82f6',
+            maxHp: 310, // Base 235 + 75 HP boost
+            speed: 4.2,
+            jumpForce: -13.4,
+            moves: {
+                punch: { name: 'Heavy Hook', dmg: 24, range: 95, cd: 20, dur: 13, kb: 6, isPunch: true }, // +35% longer reach
+                kick: { name: 'Stomp Kick', dmg: 28, range: 66, cd: 24, dur: 15, kb: 7.5, isPunch: false },
+                superPunch: { name: 'Titan Haymaker', dmg: 40, range: 122, cd: 38, dur: 18, kb: 11, isPunch: true }, // +35% longer reach
+                superKick: { name: 'Tectonic Boot', dmg: 42, range: 78, cd: 42, dur: 20, kb: 12.5, isPunch: false },
+                sk1: { name: 'Hydro Cannon', cd: 85 },
+                sk2: { name: 'Seismic Slam', cd: 120 },
+                sk3: { name: 'Tidal Fortress', cd: 195 }
+            }
+        },
+        cole: {
+            id: 'cole',
+            name: 'COLE',
+            title: 'Brawler',
+            element: 'Fire & Magma',
+            themeColor: '#fb923c',
+            secondaryColor: '#ef4444',
+            maxHp: 265, // Base 190 + 75 HP boost
+            speed: 5.2,
+            jumpForce: -14.2,
+            moves: {
+                punch: { name: 'Straight Punch', dmg: 21, range: 94, cd: 18, dur: 12, kb: 5.2, isPunch: true }, // +35% longer reach
+                kick: { name: 'Side Kick', dmg: 25, range: 66, cd: 22, dur: 14, kb: 7, isPunch: false },
+                superPunch: { name: 'Blazing Cross', dmg: 36, range: 120, cd: 34, dur: 17, kb: 9.5, isPunch: true }, // +35% longer reach
+                superKick: { name: 'Dragon Sweep', dmg: 38, range: 78, cd: 38, dur: 19, kb: 11, isPunch: false },
+                sk1: { name: 'Fireball Volley', cd: 78 },
+                sk2: { name: 'Inferno Upper', cd: 115 },
+                sk3: { name: 'Hellfire Nova', cd: 190 }
+            }
+        }
+    };
+
+    /** =========================================================================
+     *  GLOBAL STATE & INPUT HANDLING
+     *  ========================================================================= */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const GROUND_Y = 468;
+
+    let gameMode = 'pve'; // 'pve' or 'pvp'
+    let difficulty = 'medium';
+    let activeSelectSlot = 1;
+    let p1CharId = 'leo';
+    let p2CharId = 'marcus';
+
+    let gameState = 'MENU'; // 'MENU', 'PLAYING', 'ROUND_TRANSITION', 'ENDED'
+    let currentRound = 1;
+    const maxRounds = 5;
+    let roundTime = 75;
+    let lastTimerTick = 0;
+    let p1Wins = 0;
+    let p2Wins = 0;
+
+    let touchUIMode = 'auto'; // 'auto', 'on', 'off'
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    const keys = {};
+    const justPressed = {};
+
+    window.addEventListener('keydown', e => {
+        const k = e.key.toLowerCase();
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k) && gameState === 'PLAYING') {
+            e.preventDefault();
+        }
+        if (!keys[k]) justPressed[k] = true;
+        keys[k] = true;
+    });
+
+    window.addEventListener('keyup', e => {
+        const k = e.key.toLowerCase();
+        keys[k] = false;
+    });
+
+    function setupTouchControls() {
+        const gameContainer = document.getElementById('game-container');
+        gameContainer.addEventListener('touchstart', e => {
+            if (e.target === canvas) e.preventDefault();
+        }, { passive: false });
+
+        const btns = document.querySelectorAll('.t-btn');
+        btns.forEach(btn => {
+            const k = btn.getAttribute('data-tkey');
+            const press = (e) => {
+                e.preventDefault();
+                if (!keys[k]) justPressed[k] = true;
+                keys[k] = true;
+                btn.classList.add('pressed');
+            };
+            const release = (e) => {
+                e.preventDefault();
+                keys[k] = false;
+                btn.classList.remove('pressed');
+            };
+            btn.addEventListener('touchstart', press, { passive: false });
+            btn.addEventListener('touchend', release, { passive: false });
+            btn.addEventListener('touchcancel', release, { passive: false });
+            btn.addEventListener('mousedown', press);
+            btn.addEventListener('mouseup', release);
+            btn.addEventListener('mouseleave', release);
+        });
+        applyTouchVisibility();
+    }
+
+    function toggleTouchUI() {
+        if (touchUIMode === 'auto') touchUIMode = 'on';
+        else if (touchUIMode === 'on') touchUIMode = 'off';
+        else touchUIMode = 'auto';
+        applyTouchVisibility();
+    }
+
+    function applyTouchVisibility() {
+        const overlay = document.getElementById('touch-overlay');
+        const btn = document.getElementById('toggle-touch-btn');
+        const show = (touchUIMode === 'on') || (touchUIMode === 'auto' && isTouchDevice);
+        btn.innerText = `📱 iPad Touch UI: ${touchUIMode.toUpperCase()}`;
+        btn.classList.toggle('active', show);
+        if (show && gameState === 'PLAYING') {
+            overlay.classList.remove('hidden');
+        } else {
+            overlay.classList.add('hidden');
+        }
+    }
+
+    /** =========================================================================
+     *  ARTICULATED 2D CHARACTER RIG RENDERER (LEO, MARCUS, COLE)
+     *  Draws transparent-background multi-part characters matching references
+     *  ========================================================================= */
+    function drawRoundedLimb(c, x1, y1, x2, y2, thickness, color, outlineColor = null) {
+        c.save();
+        c.strokeStyle = color;
+        c.lineWidth = thickness;
+        c.lineCap = 'round';
+        c.beginPath();
+        c.moveTo(x1, y1);
+        c.lineTo(x2, y2);
+        c.stroke();
+        if (outlineColor) {
+            c.strokeStyle = outlineColor;
+            c.lineWidth = 1.2;
+            c.stroke();
+        }
+        c.restore();
+    }
+
+    function drawArticulatedCharacter(c, charId, pose) {
+        // pose: { breath, runCycle, punchExt, isSuperPunch, kickExt, castRaise, hurtTilt, crouchOffset, shieldAura, weaponGlow }
+        c.save();
+        const breath = pose.breath || 0;
+        const crouch = pose.crouchOffset || 0;
+        c.translate(0, crouch);
+
+        if (pose.hurtTilt) {
+            c.rotate(pose.hurtTilt);
+        }
+
+        // Skin palette
+        const skinBase = '#e0a37c';
+        const skinShade = '#c6865e';
+
+        // Leg kinematics
+        const legSwing = Math.sin(pose.runCycle || 0) * 14;
+        const kickLift = pose.kickExt || 0;
+
+        // Character-specific proportions
+        const isMarcus = charId === 'marcus';
+        const isLeo = charId === 'leo';
+        const isCole = charId === 'cole';
+
+        const shoulderW = isMarcus ? 22 : (isCole ? 18 : 16);
+        const chestW = isMarcus ? 34 : (isCole ? 28 : 25);
+        const legThick = isMarcus ? 14 : (isCole ? 12 : 11);
+        const armThick = isMarcus ? 12 : (isCole ? 10 : 9.5);
+
+        // Colors per character matching user reference images
+        const pantsColor = isLeo ? '#2b2d38' : (isMarcus ? '#2c4766' : '#585c56');
+        const pantsHighlight = isLeo ? '#3d404f' : (isMarcus ? '#
