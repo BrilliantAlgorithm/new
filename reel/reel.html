@@ -22,7 +22,7 @@
    ===================================================================== */
 const W = 1080, H = 1920;
 const cv = document.getElementById('c');
-const ctx = cv.getContext('2d');
+let ctx = cv.getContext('2d');
 const GROUND = 1520;
 const SCALE = 2.85;
 const CH = 140 * SCALE, HEAD = 225 * SCALE, KH = 105 * SCALE;
@@ -1083,6 +1083,122 @@ window.SFX = [
   ['scratch', 12.12], ['boom', 12.72], ['stamp', 16.35], ['pop', 24.46], ['pop', 25.6], ['stamp', 30.8], ['crowd', 37.85], ['pop', 41.6], ['pop', 41.15]
 ];
 
+
+// ---------- THUMBNAIL ----------
+function drawThumb(c, TW, TH) {
+  const v = TH > TW;             // vertical cover vs 16:9
+  const U = v ? TW / 1080 : TH / 720;
+  c.save();
+  // split background: Marcus green (top-right) vs Leo blue (bottom-left), jagged lightning seam
+  const g1 = c.createLinearGradient(0, TH, TW, 0);
+  g1.addColorStop(0, '#0c4a6e'); g1.addColorStop(0.48, '#082f49'); g1.addColorStop(0.52, '#064e3b'); g1.addColorStop(1, '#022c22');
+  c.fillStyle = g1; c.fillRect(0, 0, TW, TH);
+  // burst rays
+  const bx = v ? TW * 0.5 : TW * 0.5, by = v ? TH * 0.52 : TH * 0.5;
+  c.save(); c.translate(bx, by);
+  for (let i = 0; i < 28; i++) { c.rotate(Math.PI * 2 / 28); c.fillStyle = i % 2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.12)'; c.beginPath(); c.moveTo(0, 0); c.lineTo(-90 * U, -2200 * U); c.lineTo(90 * U, -2200 * U); c.fill(); }
+  c.restore();
+  // seam
+  c.save(); c.strokeStyle = '#fde047'; c.lineWidth = 10 * U; c.shadowColor = '#fde047'; c.shadowBlur = 40 * U; c.beginPath();
+  const sx0 = 0, sy0 = TH * (v ? 0.86 : 1.0), sx1 = TW, sy1 = TH * (v ? 0.2 : 0);
+  c.moveTo(sx0, sy0);
+  for (let i = 1; i < 12; i++) { const f = i / 12; c.lineTo(lerp(sx0, sx1, f) + (rnd(i) - 0.5) * 50 * U, lerp(sy0, sy1, f) + (rnd(i + 9) - 0.5) * 70 * U); }
+  c.lineTo(sx1, sy1); c.stroke(); c.restore();
+  // particles
+  for (let i = 0; i < 60; i++) { c.fillStyle = ['#38bdf8', '#34d399', '#fde68a'][i % 3]; c.globalAlpha = 0.5 * rnd(i + 3); c.beginPath(); c.arc(rnd(i) * TW, rnd(i + 40) * TH, (3 + rnd(i + 7) * 6) * U, 0, 7); c.fill(); }
+  c.globalAlpha = 1;
+
+  // ---- MARCUS: giant, winding up a haymaker
+  const mp = P('bigpunch', 0, -0.9); mp.face = 'angry'; mp.lean = -4 * D;
+  const mx = v ? TW * 0.70 : TW * 0.79, my = v ? TH * 1.02 : TH * 1.30, ms = (v ? 2.15 : 1.32) * U;
+  c.save(); c.translate(mx, my); c.scale(ms, ms);
+  // green aura
+  const ag = c.createRadialGradient(0, -230 * SCALE / 2.85, 10, 0, -230 * SCALE / 2.85, 420);
+  ag.addColorStop(0, 'rgba(52,211,153,0.45)'); ag.addColorStop(1, 'rgba(52,211,153,0)');
+  c.fillStyle = ag; c.beginPath(); c.arc(0, -330, 520, 0, 7); c.fill();
+  drawFighter(c, 'marcus', 0, 0, -1, mp, { shadow: false, glow: '#34d399' });
+  c.restore();
+
+  // ---- LEO: small, cornered, smirking, fist crackling with lightning
+  const lp2 = P('idle', 0); lp2.face = 'smug'; lp2.fUp = 60 * D; lp2.fFore = 70 * D; lp2.headTilt = -0.1;
+  const lx = v ? TW * 0.26 : TW * 0.17, ly = v ? TH * 0.80 : TH * 1.0, ls = (v ? 1.2 : 0.72) * U;
+  c.save(); c.translate(lx, ly); c.scale(ls, ls);
+  const lg = c.createRadialGradient(0, -400, 10, 0, -400, 420);
+  lg.addColorStop(0, 'rgba(56,189,248,0.5)'); lg.addColorStop(1, 'rgba(56,189,248,0)');
+  c.fillStyle = lg; c.beginPath(); c.arc(0, -400, 460, 0, 7); c.fill();
+  drawFighter(c, 'leo', 0, 0, 1, lp2, { shadow: false, glow: '#7dd3fc' });
+  c.restore();
+  // lightning around Leo's fist
+  const fx = lx + 150 * ls, fy = ly - 395 * ls;
+  const oldCtx = ctx; // lightning() draws on global ctx
+  ctx = c;
+  for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; lightning(fx, fy, fx + Math.cos(a) * 170 * U, fy + Math.sin(a) * 150 * U, i * 17, '#e0f2fe', 5 * U); }
+  ctx = oldCtx;
+  c.fillStyle = 'rgba(224,242,254,0.9)'; c.beginPath(); c.arc(fx, fy, 34 * U, 0, 7); c.fill();
+
+  // red circle on Leo's smirk + arrow
+  const hx = lx + 30 * ls, hy = ly - 560 * ls;
+  c.save(); c.strokeStyle = '#ef4444'; c.lineWidth = 12 * U; c.shadowColor = 'rgba(0,0,0,0.6)'; c.shadowBlur = 10 * U;
+  c.beginPath(); c.ellipse(hx, hy, 115 * U * (v ? 1 : 0.75), 100 * U * (v ? 1 : 0.75), -0.2, 0.2, Math.PI * 2 + 0.05); c.stroke(); c.restore();
+
+  // HP tags
+  const tag = (x, y, txt, col, rot) => {
+    c.save(); c.translate(x, y); c.rotate(rot); c.font = `900 ${64 * U}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const w = c.measureText(txt).width + 50 * U;
+    c.fillStyle = col; rr(c, -w / 2, -48 * U, w, 96 * U, 22 * U); c.fill(); c.strokeStyle = '#000'; c.lineWidth = 8 * U; c.stroke();
+    c.fillStyle = '#fff'; c.lineWidth = 10 * U; c.lineJoin = 'round'; c.strokeText(txt, 0, 4 * U); c.fillText(txt, 0, 4 * U); c.restore();
+  };
+  if (v) { tag(TW * 0.17, TH * 0.36, '235 HP', '#0284c7', -0.08); tag(TW * 0.74, TH * 0.315, '310 HP', '#059669', 0.07); }
+  else { tag(TW * 0.14, TH * 0.11, '235 HP', '#0284c7', -0.08); tag(TW * 0.86, TH * 0.90, '310 HP', '#059669', -0.05); }
+
+  // headline
+  const head = (lines, x, y, size, rot) => {
+    c.save(); c.translate(x, y); c.rotate(rot); c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+    lines.forEach(([txt, col], i) => {
+      c.font = `900 ${size}px ${FONT}, ${EMOJI}`;
+      const yy = i * size * 1.02;
+      c.lineWidth = size * 0.26; c.strokeStyle = '#000'; c.strokeText(txt, 0, yy);
+      c.fillStyle = col; c.fillText(txt, 0, yy);
+    });
+    c.restore();
+  };
+  if (v) head([['HOW DID', '#ffffff'], ['HE WIN?! 🤯', '#fde047']], TW / 2, TH * 0.115, 150 * U, -0.04);
+  else head([['HOW DID', '#ffffff'], ['HE WIN?! 🤯', '#fde047']], TW * 0.47, TH * 0.17, 100 * U, -0.03);
+
+  // arrow from headline to Leo
+  c.save(); c.strokeStyle = '#ef4444'; c.fillStyle = '#ef4444'; c.lineWidth = 16 * U; c.lineCap = 'round';
+  const ax0 = v ? TW * 0.33 : TW * 0.36, ay0 = v ? TH * 0.215 : TH * 0.36, ax1 = hx + (v ? 95 : 75) * U, ay1 = hy - (v ? 105 : 20) * U;
+  c.beginPath(); c.moveTo(ax0, ay0); c.quadraticCurveTo(ax0 - 90 * U, (ay0 + ay1) / 2, ax1, ay1); c.stroke();
+  const ang = Math.atan2(ay1 - (ay0 + ay1) / 2, ax1 - (ax0 - 90 * U));
+  c.translate(ax1, ay1); c.rotate(ang); c.beginPath(); c.moveTo(18 * U, 0); c.lineTo(-30 * U, -28 * U); c.lineTo(-30 * U, 28 * U); c.closePath(); c.fill();
+  c.restore();
+
+  // locked "secret combo" strip (curiosity gap)
+  const cy = v ? TH * 0.885 : TH * 0.83, cx = v ? TW / 2 : TW * 0.45, kw = (v ? 120 : 58) * U;
+  c.save();
+  const keys = ['2', 'Z', 'X', '3'];
+  const total = keys.length * kw + (keys.length - 1) * 50 * U;
+  c.fillStyle = 'rgba(0,0,0,0.65)'; rr(c, cx - total / 2 - 40 * U, cy - kw / 2 - 70 * U, total + 80 * U, kw + 110 * U, 26 * U); c.fill();
+  c.strokeStyle = '#fde047'; c.lineWidth = 5 * U; c.stroke();
+  c.font = `900 ${(v ? 44 : 30) * U}px ${FONT}, ${EMOJI}`; c.fillStyle = '#fde047'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('🔒 SECRET COMBO', cx, cy - kw / 2 - 32 * U);
+  c.filter = `blur(${10 * U}px)`;
+  keys.forEach((k, i) => {
+    const x = cx - total / 2 + i * (kw + 50 * U);
+    c.fillStyle = '#e2e8f0'; rr(c, x, cy - kw / 2 + 20 * U, kw, kw * 0.8, 14 * U); c.fill();
+    c.fillStyle = '#0f172a'; c.font = `900 ${kw * 0.5}px ${FONT}`; c.fillText(k, x + kw / 2, cy + 20 * U + kw * 0.0);
+    if (i < keys.length - 1) { c.fillStyle = '#fff'; c.fillText('➜', x + kw + 25 * U, cy + 20 * U); }
+  });
+  c.filter = 'none';
+  c.restore();
+
+  // vignette
+  const vg = c.createRadialGradient(TW / 2, TH / 2, Math.min(TW, TH) * 0.35, TW / 2, TH / 2, Math.max(TW, TH) * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  c.fillStyle = vg; c.fillRect(0, 0, TW, TH);
+  c.restore();
+}
+window.drawThumb = drawThumb;
 window.render = render;
 window.END = END;
 buildCaptions();

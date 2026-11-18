@@ -34,3 +34,10 @@ The format follows the "you, the absolute genius" explainer style: a problem, a 
 ```
 python3 make_audio.py && node render.js
 ```
+
+## Thumbnails
+- `thumbnail_vertical.png` (1080×1920): cover for Shorts, Reels and TikTok
+- `thumbnail_youtube.png` (1280×720): for a regular YouTube upload
+
+Concept: tiny, smirking Leo (235 HP) against a giant Marcus (310 HP), "HOW DID HE WIN?! 🤯", and a locked, blurred "secret combo" that the video answers.
+Rebuild: `node thumb.js`
