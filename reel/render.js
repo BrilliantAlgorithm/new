@@ -10,8 +10,8 @@ const FPS = 30;
   const END = await p.evaluate(() => window.END);
   const n = Math.round(END * FPS);
   const ff = spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
-    '-i', 'audio/mix.wav', '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
-    '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', 'elemental_duelists_reel.mp4'], { stdio: ['pipe', 'inherit', 'inherit'] });
+    '-i', process.argv[2] || 'audio/mix.wav', '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-profile:v', 'high',
+    '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', process.argv[3] || 'elemental_duelists_reel.mp4'], { stdio: ['pipe', 'inherit', 'inherit'] });
   for (let i = 0; i < n; i++) {
     const d = await p.evaluate(t => { render(t); return document.getElementById('c').toDataURL('image/jpeg', 0.93); }, i / FPS);
     const buf = Buffer.from(d.slice(d.indexOf(',') + 1), 'base64');

@@ -1,0 +1,61 @@
+{
+ "cold": 1.75,
+ "segs": [
+  {
+   "dst": 1.75,
+   "len": 4.2091,
+   "src0": 0.05,
+   "src1": 4.68,
+   "speed": 1.1,
+   "freeze": false,
+   "gapAfter": 0.1
+  },
+  {
+   "dst": 6.0591,
+   "len": 9.0545,
+   "src0": 7.44,
+   "src1": 17.4,
+   "speed": 1.1,
+   "freeze": false,
+   "gapAfter": 0.1
+  },
+  {
+   "dst": 15.2136,
+   "len": 11.9455,
+   "src0": 24.44,
+   "src1": 37.58,
+   "speed": 1.1,
+   "freeze": false,
+   "gapAfter": 0
+  },
+  {
+   "dst": 27.1591,
+   "len": 0.45,
+   "freeze": true,
+   "hold": 37.62,
+   "src0": 37.62,
+   "src1": 37.62,
+   "speed": 0,
+   "gapAfter": 0
+  },
+  {
+   "dst": 27.6091,
+   "len": 0.72,
+   "src0": 37.58,
+   "src1": 38.3,
+   "speed": 1.0,
+   "freeze": false,
+   "gapAfter": 0
+  },
+  {
+   "dst": 28.3291,
+   "len": 2.5273,
+   "src0": 40.62,
+   "src1": 43.4,
+   "speed": 1.1,
+   "freeze": false,
+   "gapAfter": 2.3
+  }
+ ],
+ "total": 33.156
+}

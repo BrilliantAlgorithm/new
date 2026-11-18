@@ -14,6 +14,7 @@
 <canvas id="c" width="1080" height="1920"></canvas>
 <div id="ctl">Preview: <button onclick="play()">Play</button> <span id="tt"></span></div>
 <script src="timeline.js"></script>
+<script src="edl.js"></script>
 <script>
 /* =====================================================================
    ELEMENTAL DUELISTS — "absolute genius" reel (1080x1920, deterministic)
@@ -25,7 +26,10 @@ const ctx = cv.getContext('2d');
 const GROUND = 1520;
 const SCALE = 2.85;
 const CH = 140 * SCALE, HEAD = 225 * SCALE, KH = 105 * SCALE;
-const END = 46.0;
+const END = (window.EDL && window.EDL.total) || 46.0;
+let AMB = 0; // ambient (new-video) time for continuous background motion
+let EXCITE = 0;
+const EMOJI = '"Noto Color Emoji"';
 const FONT = '"Inter Display", "Inter", sans-serif';
 
 // ---------- helpers ----------
@@ -282,7 +286,7 @@ function drawBackground(t, camX) {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   // stars
   for (let i = 0; i < 90; i++) {
-    const x = rnd(i) * W, y = rnd(i + 99) * 900, a = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.5 + i));
+    const x = rnd(i) * W, y = rnd(i + 99) * 900, a = 0.3 + 0.7 * Math.abs(Math.sin(AMB * 1.5 + i));
     ctx.fillStyle = `rgba(255,255,255,${a * 0.6})`; ctx.fillRect(x, y, 2.5, 2.5);
   }
   // moon
@@ -301,6 +305,7 @@ function drawBackground(t, camX) {
   };
   mount('#24204f', 1080, 260, 1, 0.1);
   mount('#1a1838', 1200, 200, 4, 0.25);
+  drawCrowd();
   // arena floor
   const fg = ctx.createLinearGradient(0, GROUND, 0, H);
   fg.addColorStop(0, '#2a2f4a'); fg.addColorStop(0.08, '#1a1e33'); fg.addColorStop(1, '#07080f');
@@ -313,6 +318,96 @@ function drawBackground(t, camX) {
     ctx.beginPath(); ctx.moveTo(x, GROUND); ctx.lineTo(W / 2 + (x - W / 2) * 2.6, H); ctx.stroke();
   }
   for (let j = 1; j < 6; j++) { const y = GROUND + Math.pow(j / 6, 1.7) * (H - GROUND); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+}
+
+function drawCrowd() {
+  // barrier with sponsor board + bobbing crowd silhouettes
+  const top = GROUND - 95;
+  for (let i = 0; i < 34; i++) {
+    const x = i * 34 + (i % 2) * 10 - 10;
+    const ex = EXCITE * (0.5 + rnd(i));
+    const bob = Math.abs(Math.sin(AMB * (5 + rnd(i) * 3) + i)) * (6 + ex * 34);
+    const y = top - 40 - rnd(i + 3) * 30 - bob;
+    ctx.fillStyle = i % 3 ? '#1c1638' : '#251c48';
+    ctx.beginPath(); ctx.arc(x, y, 17, 0, 7); ctx.fill();
+    ctx.fillRect(x - 20, y + 12, 40, 80);
+    if (ex > 0.25 && i % 2) { ctx.fillRect(x - 26, y - 30 - ex * 10, 9, 40); ctx.fillRect(x + 17, y - 30 - ex * 10, 9, 40); }
+    if (i % 5 === 1) { // phone lights
+      ctx.fillStyle = `rgba(253,230,138,${0.5 + 0.5 * Math.sin(AMB * 3 + i)})`; ctx.beginPath(); ctx.arc(x + 14, y - 22 - bob * 0.3, 5, 0, 7); ctx.fill();
+    }
+  }
+  const bg = ctx.createLinearGradient(0, top, 0, GROUND);
+  bg.addColorStop(0, '#3b2f6b'); bg.addColorStop(1, '#1d1838');
+  ctx.fillStyle = bg; ctx.fillRect(0, top, W, 95);
+  ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, top, W, 5);
+  ctx.save(); ctx.font = `900 42px ${FONT}`; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(255,255,255,0.13)';
+  const off = (AMB * 120) % 620;
+  for (let x = -off; x < W; x += 620) ctx.fillText('⚡ ELEMENTAL DUELISTS', x, top + 52);
+  ctx.restore();
+}
+function drawAtmosphere() {
+  // sweeping spotlights
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  [[120, '#38bdf8', 0], [W - 120, '#f472b6', 2]].forEach(([x, col, ph]) => {
+    const ang = Math.sin(AMB * 0.8 + ph) * 0.45;
+    ctx.save(); ctx.translate(x, 330); ctx.rotate(ang);
+    const g = ctx.createLinearGradient(0, 0, 0, 1300); g.addColorStop(0, col + '55'); g.addColorStop(1, col + '00');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-25, 0); ctx.lineTo(25, 0); ctx.lineTo(260, 1300); ctx.lineTo(-260, 1300); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
+  // element particles drifting up
+  for (let i = 0; i < 46; i++) {
+    const sp = 60 + rnd(i) * 140;
+    const y = GROUND - ((AMB * sp + rnd(i + 11) * 1400) % 1300);
+    const x = rnd(i + 5) * W + Math.sin(AMB * 2 + i) * 30;
+    const col = ['#38bdf8', '#fb923c', '#34d399', '#fde68a'][i % 4];
+    ctx.fillStyle = col; ctx.globalAlpha = 0.25 + 0.35 * rnd(i + 2);
+    ctx.beginPath(); ctx.arc(x, y, 2 + rnd(i + 8) * 4, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawVignette() {
+  const g = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.3, W / 2, H * 0.55, H * 0.75);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function speedLines(intensity, cx = W / 2, cy = 1150) {
+  if (intensity <= 0) return;
+  ctx.save(); ctx.strokeStyle = `rgba(255,255,255,${0.35 * intensity})`; ctx.lineCap = 'round';
+  const seed = Math.floor(AMB * 30);
+  for (let i = 0; i < 46; i++) {
+    const a = rnd(seed * 3 + i) * Math.PI * 2, r1 = 520 + rnd(i + seed) * 260, r2 = 1500;
+    ctx.lineWidth = 3 + rnd(i * 7 + seed) * 7;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); ctx.stroke();
+  }
+  ctx.restore();
+}
+function emojiPop(t, t0, t1, ch, x, y, size = 130) {
+  if (t < t0 || t > t1) return;
+  const a = backOut(clamp((t - t0) / 0.2)), f = clamp((t1 - t) / 0.15);
+  ctx.save(); ctx.globalAlpha = f; ctx.translate(x, y + Math.sin(AMB * 6) * 8); ctx.rotate(Math.sin(AMB * 4) * 0.12); ctx.scale(a, a);
+  ctx.font = `${size}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, 0, 0);
+  ctx.restore();
+}
+function pill(txt, col, y = 345, alpha = 1, scale = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(W / 2, y); ctx.scale(scale, scale);
+  ctx.font = `900 42px ${FONT}, ${EMOJI}`; const w = ctx.measureText(txt).width + 70;
+  ctx.fillStyle = 'rgba(0,0,0,0.72)'; rr(ctx, -w / 2, -36, w, 72, 36); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, 0, 3);
+  ctx.restore();
+}
+function stamp(t, t0, t1, txt, col, x, y, rot = -0.18, size = 120) {
+  if (t < t0 || t > t1) return;
+  const a = clamp((t - t0) / 0.12), f = clamp((t1 - t) / 0.12);
+  const sc = lerp(2.4, 1, easeOut(a));
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc); ctx.globalAlpha = a * f;
+  ctx.font = `900 ${size}px ${FONT}, ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(txt).width + 60;
+  ctx.strokeStyle = col; ctx.lineWidth = 12; rr(ctx, -w / 2, -size * 0.62, w, size * 1.24, 18); ctx.stroke();
+  ctx.lineJoin = 'round'; ctx.lineWidth = 16; ctx.strokeStyle = '#000'; ctx.strokeText(txt, 0, 4);
+  ctx.fillStyle = col; ctx.fillText(txt, 0, 4);
+  ctx.restore();
 }
 
 function drawPillar(x) { // corner wall
@@ -359,8 +454,9 @@ function buildCaptions() {
   for (let i = 0; i < CAPS.length; i++) CAPS[i].show = CAPS[i + 1] ? Math.min(CAPS[i + 1].start, CAPS[i].end + 0.6) : CAPS[i].end + 0.6;
 }
 const HOT = /MARCUS|LEO|TANK|PROBLEM|GENIUS|MASH|PUNCH|SOLVED|FLINCHES|TITAN|HAYMAKER|FLYING|BRILLIANT|JUMP|CORNER|HYDRO|CANNON|HUGE|BRAIN|PLAN|BUNKER|SHIELD|WALL|SEISMIC|SLAM|VOLT|DASH|SONIC|STRAIGHT|CYCLONE|KICK|TEMPEST|VORTEX|K\.O|RESPECT|ELEMENTAL|DUELISTS|FIGHTER|310|THREE-HUNDRED-TEN|HP|ABSOLUTE/;
-function drawCaption(t) {
-  const cap = CAPS.find(c => t >= c.start - 0.05 && t < c.show);
+function drawCaption(t, seg) {
+  const lo = seg ? seg.src0 - 0.03 : -1, hi = seg ? seg.src1 : 1e9;
+  const cap = CAPS.find(c => t >= c.start - 0.05 && t < c.show && c.start >= lo && c.start <= hi);
   if (!cap) return;
   const age = t - cap.start;
   const s = 0.82 + 0.18 * backOut(clamp(age / 0.16));
@@ -512,7 +608,7 @@ function state(t) {
   }
   // ---- S4: the plan, bunker wall (24.3 - 31.4)
   else if (t < 31.4) {
-    S.hpL = 0.55; S.hpM = 0.97;
+    S.hpL = 0.83; S.hpM = 0.97;
     L.x = 940; L.f = -1; M.x = lerp(500, 360, prog(t, 24.3, 26)); M.f = 1;
     L.pose = P('think', t); L.pose.face = 'smug';
     if (t < 26.8) S.fx.push(['bulb', L.x, GROUND - HEAD - 80, t - 24.4]);
@@ -538,7 +634,7 @@ function state(t) {
   }
   // ---- S5: combo (31.4 - 37.55)
   else if (t < 37.55) {
-    S.hpL = 0.55;
+    S.hpL = 0.83;
     M.x = 560; M.f = 1; M.pose = P('idle', t); M.pose.face = 'shock';
     L.x = 920; L.f = -1; L.pose = P('idle', t); L.pose.face = 'angry';
     // volt dash 31.95-32.3: from 880 -> 360 (behind marcus) ... marcus faces right (toward where Leo was)
@@ -588,7 +684,7 @@ function state(t) {
   }
   // ---- S6: KO + end card (37.55 - END)
   else {
-    S.hpL = 0.55; S.hpM = 0;
+    S.hpL = 0.83; S.hpM = 0;
     L.x = 330; L.f = 1; L.pose = t < 38.4 ? P('cast', t) : P('cheer', t); L.pose.face = 'happy';
     // marcus falls
     const fall = prog(t, 37.55, 37.9);
@@ -612,55 +708,72 @@ function drawEndcard(t, a) {
   const g = ctx.createRadialGradient(W / 2, 900, 100, W / 2, 900, 1200);
   g.addColorStop(0, '#1e1b4b'); g.addColorStop(1, '#05060b');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  // rays
-  ctx.save(); ctx.translate(W / 2, 1150); ctx.rotate(t * 0.15);
+  ctx.save(); ctx.translate(W / 2, 1020); ctx.rotate(AMB * 0.15);
   for (let i = 0; i < 16; i++) { ctx.rotate(Math.PI / 8); ctx.fillStyle = i % 2 ? 'rgba(56,189,248,0.07)' : 'rgba(251,191,36,0.06)'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-120, -1400); ctx.lineTo(120, -1400); ctx.fill(); }
   ctx.restore();
+  drawAtmosphere();
   // title
   const ts = backOut(clamp((t - 40.7) / 0.35));
-  ctx.save(); ctx.translate(W / 2, 470); ctx.scale(ts, ts);
+  ctx.save(); ctx.translate(W / 2, 330); ctx.scale(ts, ts);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `900 150px ${FONT}`;
   const grad = ctx.createLinearGradient(-420, 0, 420, 0);
   grad.addColorStop(0, '#38bdf8'); grad.addColorStop(0.5, '#fbbf24'); grad.addColorStop(1, '#f87171');
   ctx.lineJoin = 'round'; ctx.lineWidth = 26; ctx.strokeStyle = '#000';
-  ctx.strokeText('ELEMENTAL', 0, -85); ctx.strokeText('DUELISTS', 0, 85);
-  ctx.fillStyle = grad; ctx.fillText('ELEMENTAL', 0, -85); ctx.fillText('DUELISTS', 0, 85);
+  ctx.strokeText('ELEMENTAL', 0, -82); ctx.strokeText('DUELISTS', 0, 82);
+  ctx.fillStyle = grad; ctx.fillText('ELEMENTAL', 0, -82); ctx.fillText('DUELISTS', 0, 82);
   ctx.restore();
+  // feature line
+  const fl = clamp((t - 41.0) / 0.3);
+  ctx.save(); ctx.globalAlpha = a * fl; ctx.textAlign = 'center'; ctx.font = `800 36px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillText('3 FIGHTERS  •  6 ELEMENTS  •  1P vs BOT  •  2P VERSUS', W / 2, 560); ctx.restore();
   // fighters lineup
   const lineup = [['leo', 230, '#38bdf8', 'LEO', 'WIND & LIGHTNING'], ['marcus', 540, '#34d399', 'MARCUS', 'EARTH & WATER'], ['cole', 850, '#fb923c', 'COLE', 'FIRE & MAGMA']];
   lineup.forEach(([id, x, col, name, el], i) => {
-    const k = easeOut(clamp((t - 41.0 - i * 0.18) / 0.4));
+    const k = easeOut(clamp((t - 41.0 - i * 0.15) / 0.35));
     if (k <= 0) return;
     ctx.save(); ctx.globalAlpha = a * k;
-    const y = 1440 + (1 - k) * 160;
+    const y = 1180 + (1 - k) * 160;
     ctx.fillStyle = col + '33'; ctx.beginPath(); ctx.ellipse(x, y, 130, 30, 0, 0, 7); ctx.fill();
     ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.stroke();
-    const pose = P(id === 'leo' ? 'cheer' : id === 'marcus' ? 'cast' : 'punch', t + i, id === 'cole' ? 0.6 + 0.4 * Math.sin(t * 6) : 0);
+    const pose = P(id === 'leo' ? 'cheer' : id === 'marcus' ? 'cast' : 'punch', t + i, id === 'cole' ? 0.6 + 0.4 * Math.sin(AMB * 6) : 0);
     pose.face = id === 'marcus' ? 'smug' : 'happy';
     if (id === 'marcus') { pose.fUp = 30 * D; pose.fFore = 150 * D; pose.bUp = 30 * D; pose.bFore = 150 * D; }
-    ctx.save(); ctx.translate(x, y); ctx.scale(0.78, 0.78);
+    ctx.save(); ctx.translate(x, y); ctx.scale(0.8, 0.8);
     drawFighter(ctx, id, 0, 0, 1, pose, { shadow: false });
     ctx.restore();
     ctx.textAlign = 'center'; ctx.font = `900 54px ${FONT}`; ctx.lineWidth = 12; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round';
-    ctx.strokeText(name, x, y + 90); ctx.fillStyle = col; ctx.fillText(name, x, y + 90);
-    ctx.font = `800 26px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillText(el, x, y + 130);
+    ctx.strokeText(name, x, y + 85); ctx.fillStyle = col; ctx.fillText(name, x, y + 85);
+    ctx.font = `800 26px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillText(el, x, y + 124);
     ctx.restore();
   });
-  // CTA
-  const c = clamp((t - 42.2) / 0.3);
+  // comment prompt
+  const q = clamp((t - 41.6) / 0.25);
+  if (q > 0) {
+    ctx.save(); ctx.globalAlpha = a * q; ctx.translate(W / 2, 1420); ctx.scale(backOut(q), backOut(q)); ctx.rotate(-0.03);
+    ctx.font = `900 70px ${FONT}, ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 16; ctx.strokeStyle = '#000'; ctx.strokeText('WHO WOULD YOU MAIN? 👇', 0, 0);
+    ctx.fillStyle = '#fde047'; ctx.fillText('WHO WOULD YOU MAIN? 👇', 0, 0);
+    ctx.restore();
+  }
+  // CTA button
+  const c = clamp((t - 42.0) / 0.3);
   if (c > 0) {
     ctx.save(); ctx.globalAlpha = a * c;
-    const pul = 1 + 0.04 * Math.sin(t * 8);
-    ctx.translate(W / 2, 1720); ctx.scale(pul * backOut(c), pul * backOut(c));
-    const bg = ctx.createLinearGradient(-330, 0, 330, 0); bg.addColorStop(0, '#2563eb'); bg.addColorStop(1, '#7c3aed');
-    ctx.fillStyle = bg; rr(ctx, -340, -70, 680, 140, 70); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.font = `900 64px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('PICK YOUR FIGHTER', 0, 2);
+    const pul = 1 + 0.045 * Math.sin(AMB * 9);
+    ctx.translate(W / 2, 1610); ctx.scale(pul * backOut(c), pul * backOut(c));
+    ctx.shadowColor = '#7c3aed'; ctx.shadowBlur = 50;
+    const bg = ctx.createLinearGradient(-430, 0, 430, 0); bg.addColorStop(0, '#2563eb'); bg.addColorStop(1, '#db2777');
+    ctx.fillStyle = bg; rr(ctx, -440, -78, 880, 156, 78); ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = `900 62px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('▶ PLAY FREE NOW', 0, 3);
+    // tap cursor
+    const tp = (AMB * 1.4) % 1;
+    ctx.font = `90px ${EMOJI}`; ctx.fillText('👆', 330 + Math.sin(tp * Math.PI) * 10, 95 - Math.sin(tp * Math.PI) * 18);
     ctx.restore();
-    ctx.save(); ctx.globalAlpha = a * c; ctx.textAlign = 'center'; ctx.font = `700 34px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText('1P vs Bot  •  2P Local Versus  •  iPad Touch Ready', W / 2, 820);
+    ctx.save(); ctx.globalAlpha = a * c; ctx.textAlign = 'center'; ctx.font = `800 40px ${FONT}, ${EMOJI}`; ctx.fillStyle = '#fff';
+    ctx.fillText('🔗 LINK IN BIO  •  NO DOWNLOAD  •  BROWSER & iPAD', W / 2, 1775);
     ctx.restore();
   }
   ctx.restore();
@@ -798,15 +911,30 @@ function drawKO(t) {
 }
 
 // ---------- main render ----------
-function render(t) {
+const HITS = [15.8, 30.3, 33.85, 34.85, 37.62];
+const TRAILS = [[15.8, 16.35, 'leo'], [19.5, 20.6, 'leo'], [31.95, 32.4, 'leo'], [34.45, 35.0, 'leo'], [36.2, 37.6, 'marcus']];
+function renderOld(t, info = {}) {
   const S = state(t);
+  EXCITE = clamp(HITS.reduce((a, h) => a + pulse(t, h, 1.2), 0) + (t > 37.6 && t < 41 ? 1 : 0) + (t > 31.9 && t < 37.6 ? 0.4 : 0));
+  S.zoom *= 1 + (info.push || 0);
+  if (info.freeze != null) { S.zoom *= 1.04 + info.freeze * 0.12; S.shake = 0; }
   ctx.save();
   // camera shake + zoom around arena center
   const sx = (rnd(Math.floor(t * 60)) - 0.5) * S.shake, sy = (rnd(Math.floor(t * 60) + 7) - 0.5) * S.shake;
   ctx.translate(W / 2 + sx, 1150 + sy); ctx.scale(S.zoom, S.zoom); ctx.translate(-W / 2, -1150);
   drawBackground(t, 0);
+  drawAtmosphere();
   drawPillar(70);
   drawWall(S.wall, t);
+  // motion trails (afterimages)
+  for (const [a, b, who] of TRAILS) if (t > a && t < b) {
+    for (let k = 4; k >= 1; k--) {
+      const G = state(t - k * 0.035); const F = who === 'leo' ? G.leo : G.mar;
+      ctx.save(); ctx.globalAlpha = 0.16 * (5 - k) / 4;
+      const o = Object.assign({}, F.o, { shadow: false, flash: 0.6 }); if (F.y && !o.air) o.air = -F.y;
+      drawFighterWorld(who, F, o); ctx.restore();
+    }
+  }
   // fighters: draw the one in the air / attacking last
   const order = [['marcus', S.mar], ['leo', S.leo]];
   for (const [id, F] of order) {
@@ -820,7 +948,13 @@ function render(t) {
     drawFighterWorld(id, F, o);
   }
   drawFX(S, t);
+  speedLines((t > 31.9 && t < 37.7 ? 0.7 : 0) + (info.freeze != null ? 1 : 0) + pulse(t, 15.8, 0.5));
   ctx.restore();
+  drawVignette();
+  // impact frame: 2 frames of inverted colour on heavy hits
+  if (info.freeze != null ? info.freeze < 0.07 : HITS.some(h => t - h >= 0 && t - h < 0.07)) {
+    ctx.save(); ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
 
   // HP pulse label (S1)
   drawHUD(t, S.hpL, S.hpM);
@@ -831,17 +965,91 @@ function render(t) {
     banner(t, 2.8, 4.7, '310 HP TANK', '#34d399', 1690, 120);
   }
   for (const f of S.fx) if (f[0] === 'banner') banner(t, f[1], f[2], f[3], f[4], 1690, f[6]);
-  if (t >= 37.55) drawKO(t);
-  drawCaption(t);
+  if (t >= 37.55 && info.freeze == null) drawKO(t);
+  // retention beats: attempt labels, stamps, emoji reactions
+  if (S.endcard < 0.5 && !info.cold) {
+    if (t < 7.3) pill('WAIT FOR THE COMBO 👀', '#fbbf24', 345, clamp((t - 0.05) / 0.2));
+    else if (t < 17.45) pill(t > 16.3 ? 'ATTEMPT #1: MASH PUNCH ❌' : 'ATTEMPT #1: MASH PUNCH', '#f87171', 345, 1, 1 + pulse(t, 7.44, 0.25) * 0.15);
+    else if (t > 24.3) pill(t > 30.8 ? 'ATTEMPT #2: BIG BRAIN PLAN ✅' : 'ATTEMPT #2: BIG BRAIN PLAN', '#34d399', 345, 1, 1 + pulse(t, 24.44, 0.25) * 0.15 + pulse(t, 30.8, 0.25) * 0.12);
+    emojiPop(t, 12.7, 14.6, '😐', S.mar.x + 10, GROUND - HEAD - 150);
+    emojiPop(t, 16.3, 17.45, '💀', 300, GROUND - HEAD - 120, 150);
+    stamp(t, 16.35, 17.45, 'FAILED', '#ef4444', W / 2, 1000);
+    emojiPop(t, 25.6, 26.9, '🧠', W / 2 + 260, 1010, 120);
+    emojiPop(t, 33.9, 35.5, '🔥', 220, 930, 120);
+    emojiPop(t, 38.6, 40.5, '😵', S.mar.x, GROUND - 260, 120);
+  }
+  if (!info.cold && S.endcard <= 0) drawCaption(t, info.seg);
   // round tag
   if (S.endcard < 1) {
     ctx.save(); ctx.globalAlpha = 1 - S.endcard; ctx.textAlign = 'center'; ctx.font = `800 30px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.6)';
     ctx.fillText('⚡ ELEMENTAL DUELISTS', W / 2, 1830); ctx.restore();
   }
   drawEndcard(t, S.endcard);
-  // intro hook flash at 0
-  const intro = 1 - clamp(t / 0.25);
-  if (intro > 0) { ctx.fillStyle = `rgba(0,0,0,${intro})`; ctx.fillRect(0, 0, W, H); }
+  return S;
+}
+
+// ---------- v2 timeline wrapper (new time -> source time) ----------
+function mapT(tn) {
+  const E = window.EDL;
+  if (!E) return { old: tn };
+  if (tn < E.cold) return { cold: true };
+  for (const s of E.segs) {
+    const end = s.dst + s.len + s.gapAfter;
+    if (tn < end) return s.freeze ? { old: s.hold, seg: s, freeze: tn - s.dst } : { old: s.src0 + (tn - s.dst) * s.speed, seg: s, push: 0.05 * clamp((tn - s.dst) / Math.max(s.len, 0.1)) };
+  }
+  const l = E.segs[E.segs.length - 1];
+  return { old: l.src1 + (tn - l.dst - l.len) * l.speed, seg: l };
+}
+function render(tn) {
+  AMB = tn;
+  const m = mapT(tn);
+  const E = window.EDL || { cold: 0, total: END };
+  if (m.cold) {
+    // COLD OPEN: slow-mo finisher + hook question, then a fast rewind to the start
+    const rw = clamp((tn - 1.25) / (E.cold - 1.25));
+    const old = rw > 0 ? lerp(37.15, 0.05, easeIn(rw)) : 36.55 + tn * 0.48;
+    AMB = rw > 0 ? 1.25 - rw * 6 : tn;
+    renderOld(old, { cold: true });
+    const fade = 1 - rw;
+    ctx.save(); ctx.globalAlpha = fade;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 430, W, 420);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    const s1 = backOut(clamp(tn / 0.18));
+    ctx.save(); ctx.translate(W / 2, 545); ctx.scale(s1, s1);
+    ctx.font = `900 104px ${FONT}`; ctx.lineWidth = 22; ctx.strokeStyle = '#000';
+    const l1 = '235 HP', l2 = ' vs ', l3 = '310 HP';
+    const w1 = ctx.measureText(l1).width, w2 = ctx.measureText(l2).width, w3 = ctx.measureText(l3).width; let x = -(w1 + w2 + w3) / 2;
+    [[l1, '#38bdf8', w1], [l2, '#fff', w2], [l3, '#34d399', w3]].forEach(([tx, col, w]) => { ctx.strokeText(tx, x + w / 2, 0); ctx.fillStyle = col; ctx.fillText(tx, x + w / 2, 0); x += w; });
+    ctx.restore();
+    const s2 = backOut(clamp((tn - 0.42) / 0.2));
+    if (s2 > 0) {
+      ctx.save(); ctx.translate(W / 2, 715); ctx.rotate(-0.05); ctx.scale(s2, s2);
+      ctx.font = `900 150px ${FONT}, ${EMOJI}`; ctx.lineWidth = 26; ctx.strokeStyle = '#000';
+      ctx.strokeText('HOW?! 🤯', 0, 0); ctx.fillStyle = '#fde047'; ctx.fillText('HOW?! 🤯', 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+    if (rw > 0) { // VHS rewind look
+      ctx.save();
+      for (let y = 0; y < H; y += 6) { ctx.fillStyle = `rgba(0,0,0,${0.18 + 0.1 * rnd(y + Math.floor(tn * 60))})`; ctx.fillRect(0, y, W, 3); }
+      const by = (tn * 4000) % H; ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(0, by, W, 60);
+      ctx.font = `900 90px ${FONT}, ${EMOJI}`; ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.lineWidth = 14; ctx.strokeStyle = '#000';
+      ctx.strokeText('⏪ REWIND', 60, 380); ctx.fillText('⏪ REWIND', 60, 380);
+      ctx.restore();
+    }
+    const fl = 1 - clamp(tn / 0.2); // opening flash (matches the loop flash at the end)
+    if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${fl})`; ctx.fillRect(0, 0, W, H); }
+  } else {
+    renderOld(m.old, m);
+  }
+  // progress bar (retention)
+  const pr = clamp(tn / E.total);
+  ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(0, H - 14, W, 14);
+  const pg = ctx.createLinearGradient(0, 0, W, 0); pg.addColorStop(0, '#38bdf8'); pg.addColorStop(0.5, '#fbbf24'); pg.addColorStop(1, '#f87171');
+  ctx.fillStyle = pg; ctx.fillRect(0, H - 14, W * pr, 14);
+  // loop flash into the cold open
+  const lf = clamp((tn - (E.total - 0.25)) / 0.25);
+  if (lf > 0) { ctx.fillStyle = `rgba(255,255,255,${lf})`; ctx.fillRect(0, 0, W, H); }
 }
 
 function drawFighterWorld(id, F, o) {
@@ -871,7 +1079,8 @@ window.SFX = [
   ['whoosh', 19.5], ['land', 20.6], ['charge', 22.0], ['water', 22.55],
   ['ding', 24.6], ['rise', 27.4], ['whoosh', 29.55], ['quake', 30.3], ['shatter', 30.75],
   ['zap', 31.95], ['hit', 33.85], ['whoosh', 34.45], ['hit', 34.85], ['wind', 36.0], ['bighit', 37.6], ['thud', 37.9],
-  ['rise', 40.6], ['ding', 42.2]
+  ['rise', 40.6], ['ding', 42.0],
+  ['scratch', 12.12], ['boom', 12.72], ['stamp', 16.35], ['pop', 24.46], ['pop', 25.6], ['stamp', 30.8], ['crowd', 37.85], ['pop', 41.6], ['pop', 41.15]
 ];
 
 window.render = render;
@@ -881,7 +1090,7 @@ buildCaptions();
 // preview player
 let playing = false, t0 = 0, audio = null;
 function play() {
-  if (!audio) audio = new Audio('audio/voiceover.mp3');
+  if (!audio) audio = new Audio('audio/mix_v2.wav');
   audio.currentTime = 0; audio.play().catch(() => {});
   t0 = performance.now(); playing = true; requestAnimationFrame(loop);
 }
